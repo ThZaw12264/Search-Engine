@@ -11,9 +11,10 @@ from json import load as jload, dump as jdump
 class Posting():
     N = None
 
-    def __init__(self, url, frequency, tfidf = 0):
+    def __init__(self, url, frequency, idx_list, tfidf = 0):
         self.url = url
         self.frequency = frequency
+        self.idx_list = idx_list
         self.tfidf = tfidf
 
     def __repr__(self):
@@ -34,7 +35,7 @@ class Indexer():
         self.logspath = logspath
         self.inverted_index = {}
         self.unique_words = set()
-        self.num_docs = 0
+        self.num_documents = 0
         self.nlp = spacy.load('en_core_web_sm')
 
 
@@ -96,6 +97,7 @@ class Indexer():
     
 
     def _initialize_ii(self, urls):
+        # i = 0
         for loc, url in urls.items():
             print("Processing", loc)
             text = self._get_content(loc)
@@ -103,7 +105,10 @@ class Indexer():
                 continue
             tokens = self._tokenize(text)
             token_dict = Counter(tokens)
-            self._extend_token_to_ii(token_dict, url)
+            self._extend_token_to_ii(token_dict, tokens, url)
+            # if i == 100:
+            #     break
+            # i += 1
 
 
     def _update_ii(self):
@@ -116,9 +121,10 @@ class Indexer():
                 posting.set_tfidf(tfidf)
     
 
-    def _extend_token_to_ii(self, token_dict, url):
+    def _extend_token_to_ii(self, token_dict, tokens, url):
         for token, count in token_dict.items():
-            posting = Posting(url, count)
+            idx_list = [i for i in range(len(tokens)) if tokens[i] == token]
+            posting = Posting(url, count, idx_list)
             if token not in self.inverted_index:
                 self.inverted_index[token] = [posting]
             else:
@@ -130,40 +136,78 @@ class Indexer():
             urls = jload(f)
 
         Posting.set_N(len(urls))
-        self.num_docs = len(urls)
+        self.num_documents = len(urls)
         self._initialize_ii(urls)
         self._update_ii()
         
         return self.inverted_index
     
 
+    def _find_postings(self, query):
+        query_tokens = self._tokenize(query)
+        postings = {}
+        for token in query_tokens:
+            if token in self.inverted_index:
+                for p in self.inverted_index[token]:
+                    if p.url in postings:
+                        adjacent_pairs = 1
+                        p2 = postings[p.url]
+                        idx1 = idx2 = 0
+                        while idx1 < len(p.idx_list) and idx2 < len(p2.idx_list):
+                            if abs(p.idx_list[idx1] - p2.idx_list[idx2]) == 1:
+                                adjacent_pairs += 1
+                                idx1 += 1
+                                idx2 += 1
+                            elif p.idx_list[idx1] <  p2.idx_list[idx2]:
+                                idx1 += 1
+                            else:
+                                idx2 += 1
+
+                        postings[p.url] = Posting(p.url,
+                                                  p2.frequency + p.frequency,
+                                                  p2.idx_list + p.idx_list,
+                                                  p2.tfidf * p.tfidf * self.calc_adjacency_coeff(adjacent_pairs))
+                    else:
+                        postings[p.url] = p
+
+        return postings
+    
+    def calc_adjacency_coeff(self, adjacent_pairs):
+        return (-1 / (adjacent_pairs / 4)) + 5
+
     def search(self, query):
-        query = query.lower()
-        postings = self.inverted_index[query] if query in self.inverted_index else None
+        postings = self._find_postings(query)
         if not postings:
             return
-        sorted_postings = sorted(postings, key=lambda x: -x.tfidf)
-        urls = [p.url for p in sorted_postings]
+        sorted_postings = sorted(postings.values(), key=lambda x: -x.tfidf)
+        urls = [(p.url, p.tfidf) for p in sorted_postings]
         numURLS = len(urls)
         return numURLS, urls[:20]
     
 
-    def load_ii(self):
+    def load_table(self):
         with open(self.iipath, 'r') as f:
-            inv_ind = jload(f)
-            for index, postings in inv_ind.items():
+            table = jload(f)
+            self.unique_words = set(table['unique_words'])
+            self.num_documents = table['num_documents']
+            ii = table['inverted_index']
+            for index, postings in ii.items():
                 self.inverted_index[index] = []
                 for posting in postings:
                     self.inverted_index[index].append(Posting(posting['url'],
                                                               posting['frequency'],
+                                                              posting['idx_list'],
                                                               posting['tfidf'])
                                                               )
-        # TODO: initialize member variables like unique_words
 
 
-    def save_ii(self):
+    def save_table(self):
         with open(self.iipath, 'w') as f:
-            jdump(inverted_index, f, default=lambda o: o.__dict__)
+            table = {}
+            table['unique_words'] = list(self.unique_words)
+            table['num_documents'] = self.num_documents
+            table['inverted_index'] = inverted_index
+            jdump(table, f, default=lambda o: o.__dict__)
 
 
     def print_ii(self):
@@ -179,7 +223,7 @@ class Indexer():
         with open(self.logspath, 'w') as f:
             f.write('Index Analytics Table:\n')
             f.write(f'\tNumber of unique words: {len(self.unique_words)}\n')
-            f.write(f'\tNumber of documents:: {self.num_docs}\n')
+            f.write(f'\tNumber of documents:: {self.num_documents}\n')
             f.write(f'\tIndex file size: {file_size // 1000}KB\n')
             f.write('\n')
 
@@ -188,7 +232,7 @@ class Indexer():
         file_size = os.path.getsize(self.iipath)
         print('Index Analytics Table:')
         print(f'\tNumber of unique words: {len(self.unique_words)}')
-        print(f'\tNumber of documents: {self.num_docs}')
+        print(f'\tNumber of documents: {self.num_documents}')
         print(f'\tIndex file size: {file_size // 1000}KB')
         print()
 
@@ -210,7 +254,7 @@ class Indexer():
         print(f'Number of URLS: {numURLS}')
         print(f'Top URLS (up to 20):')
         for i, url in enumerate(urls):
-            print(f'\tURL {i+1}: {url}')
+            print(f'\tURL {i+1}: {url[1]}{url[0]}')
         print()
 
 
@@ -227,10 +271,10 @@ if __name__ == "__main__":
     indexer = Indexer(IIPATH, LOGSPATH)
 
     if os.path.isfile(IIPATH):
-        indexer.load_ii()
+        indexer.load_table()
     else:
         inverted_index = indexer.construct_index(BKPATH)
-        indexer.save_ii()
+        indexer.save_table()
 
     # indexer.print_ii()
     indexer.save_analytics()
