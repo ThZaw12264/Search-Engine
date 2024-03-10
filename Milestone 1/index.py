@@ -141,45 +141,13 @@ class Indexer():
         self._update_ii()
         
         return self.inverted_index
-    
 
-    def _find_postings(self, query):
-        query_tokens = self._tokenize(query)
-        postings = {}
-        for token in query_tokens:
-            if token in self.inverted_index:
-                for p in self.inverted_index[token]:
-                    if p.url in postings:
-                        adjacent_pairs = 1
-                        p2 = postings[p.url]
-                        idx1 = idx2 = 0
-                        while idx1 < len(p.idx_list) and idx2 < len(p2.idx_list):
-                            if abs(p.idx_list[idx1] - p2.idx_list[idx2]) == 1:
-                                adjacent_pairs += 1
-                                idx1 += 1
-                                idx2 += 1
-                            elif p.idx_list[idx1] <  p2.idx_list[idx2]:
-                                idx1 += 1
-                            else:
-                                idx2 += 1
-
-                        postings[p.url] = Posting(p.url,
-                                                  p2.frequency + p.frequency,
-                                                  p2.idx_list + p.idx_list,
-                                                  p2.tfidf * p.tfidf * self.calc_adjacency_coeff(adjacent_pairs))
-                    else:
-                        postings[p.url] = p
-
-        return postings
-    
-    def calc_adjacency_coeff(self, adjacent_pairs):
-        return (-1 / (adjacent_pairs / 4)) + 5
 
     def search(self, query):
-        postings = self._find_postings(query)
+        postings = self.inverted_index[query] if query in self.inverted_index else None
         if not postings:
             return
-        sorted_postings = sorted(postings.values(), key=lambda x: -x.tfidf)
+        sorted_postings = sorted(postings, key=lambda x: -x.tfidf)
         urls = [(p.url, p.tfidf) for p in sorted_postings]
         numURLS = len(urls)
         return numURLS, urls[:20]
