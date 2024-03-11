@@ -10,10 +10,11 @@ from json import load as jload, dump as jdump
 
 class Posting():
 
-    def __init__(self, loc, token, url, frequency, idx_list, tag_important=False, tfidf = 0):
+    def __init__(self, loc, token, url, title, frequency, idx_list, tag_important=False, tfidf = 0):
         self.loc = loc
         self.token = token
         self.url = url
+        self.title = title
         self.frequency = frequency
         self.idx_list = idx_list
         self.tag_important = tag_important
@@ -67,7 +68,10 @@ class Indexer():
                     frequency = count / len(tokens)
                     idx_list = [i for i in range(len(tokens)) if tokens[i] == token]
                     tag_important = self._contains_important_token(root, token)
-                    posting = Posting(loc, token, url, frequency, idx_list, tag_important)
+                    # title = root.find(".//title").text if root.find(".//title") else "N/A"
+                    title_elem = root.xpath("//title")
+                    title = title_elem[0].text if title_elem else "N/A"
+                    posting = Posting(loc, token, url, title, frequency, idx_list, tag_important)
                     if token not in self.inverted_index:
                         self.inverted_index[token] = [posting]
                     else:
@@ -126,6 +130,7 @@ class Indexer():
                     self.inverted_index[index].append(Posting(posting['loc'],
                                                               posting['token'],
                                                               posting['url'],
+                                                              posting['title'],
                                                               posting['frequency'],
                                                               posting['idx_list'],
                                                               posting['tag_important'],

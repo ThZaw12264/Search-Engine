@@ -3,7 +3,7 @@ from index import Indexer
 from search import SearchEngine
 
 if __name__ == "__main__":
-    PAGES_PATH = r"..\..\WEBPAGES_RAW"
+    PAGES_PATH = r"..\..\..\WEBPAGES_RAW"
     II_PATH = r"..\..\table.json"
     LOGS_PATH = r"..\..\logs.txt"
         
