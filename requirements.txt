@@ -1,0 +1,6 @@
+lxml
+spacy
+scikit-learn
+fastapi
+uvicorn
+flask

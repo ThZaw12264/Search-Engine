@@ -6,9 +6,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 class SearchResult():
     
-    def __init__(self, loc, url, score=1):
+    def __init__(self, loc, url, title, score=1):
         self.loc = loc
         self.url = url
+        self.title = title
         self.score = score
         self.postings =  {}
 
@@ -19,7 +20,7 @@ class SearchResult():
         self.score *= val
 
 
-class SearchEngine:
+class SearchEngine():
 
     def __init__(self, indexer, logs_path):
         self.indexer = indexer
@@ -36,7 +37,7 @@ class SearchEngine:
                     if posting.url in search_results:
                         search_results[posting.url].insert(token, posting)
                     else:
-                        search_results[posting.url] = SearchResult(posting.loc, posting.url)
+                        search_results[posting.url] = SearchResult(posting.loc, posting.url, posting.title)
                         search_results[posting.url].insert(token, posting)
         
         return list(search_results.values())
@@ -54,7 +55,7 @@ class SearchEngine:
         # Final score sorting
         sorted_results = sorted(results, key=lambda x: -x.score)
 
-        urls = [(sr.url, sr.loc, sr.score) for sr in sorted_results]
+        urls = [(sr.url, sr.title, sr.loc, sr.score) for sr in sorted_results]
         numURLS = len(urls)
         return numURLS, urls[:20]
     
@@ -82,7 +83,7 @@ class SearchEngine:
             else:
                 sr_vector.append(0)
 
-        print(query_vector, sr_vector)
+        # print(query_vector, sr_vector)
 
         return [query_vector], [sr_vector]
     
@@ -94,7 +95,7 @@ class SearchEngine:
             query_vector, result_vector = self.tfidf_vectorize(query, result)
             cosine_score = cosine_similarity(query_vector, result_vector)
             score_list.append(cosine_score)
-        print(score_list)
+        # print(score_list)
         max_score = max(score_list)
         min_score = min(score_list)
 
