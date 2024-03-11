@@ -51,10 +51,11 @@ Description: In this milestone, we enhance the search engine to support multi-to
 1. Clone the repository to your local machine.
 2. Create a virtual environment and activate it.
 3. ```pip install -r requirements.txt```
-4. Navigate to the v2 folder in the milestone2 folder.
-5. In one terminal, open the backend folder and run: ```uvicorn.exe main:app --reload```
-6. In another terminal, open the frontend folder and run these three installs:
+4. ```python -m spacy download en_core_web_sm```
+5. Navigate to the v2 folder in the milestone2 folder.
+6. In one terminal, open the backend folder and run: ```uvicorn.exe main:app --reload```
+7. In another terminal, open the frontend folder and run these three installs:
    - ```npm install react-scripts```
    - ```npm install react-dom```
    - ```npm install axios```
-7. Run ```npm start``` in frontend terminal.
+8. Run ```npm start``` in frontend terminal.

@@ -1,5 +1,15 @@
+# Virtual Environments
+.env
+env
+
+# Webpages
 WEBPAGES_RAW
+
+# Index
 table.json
 logs.txt
-.env
+
+# Other
 Milestone2/v2/frontend/node_modules
+project3.zip
+.vscode
