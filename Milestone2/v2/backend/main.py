@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from search import SearchEngine
 from index import Indexer
-import json
 import os
 
 app = FastAPI()
@@ -42,7 +41,6 @@ def search(query_request: QueryRequest):
     else:
         return None
     searchResults = [(title, url) for url, title, _, _ in searchResults]
-    # searches = {f"Search {i+1}: ": (searchResults[i][0], searchResults[i][1]) for i in range(numUrls)}
     return searchResults
     
 

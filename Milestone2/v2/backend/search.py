@@ -197,5 +197,5 @@ class SearchEngine():
         print(f'Number of Results: {num_results}')
         print(f'Top Results (up to 20):')
         for i, sr in enumerate(search_results):
-            print(f'\tRESULT {i+1}: {sr}')
+            print(f'\tRESULT {i+1}: {sr[-1]}, {sr[1]}, {sr[0]}')
         print()
